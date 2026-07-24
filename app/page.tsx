@@ -24,14 +24,16 @@ export default function Home() {
 
   async function submitNote(){
 
-    console.log({
-      subject:selectedSubject,
-      topic:selectedTopic,
-      type,
-      language,
-      title,
-      content
-    });
+  const response = await fetch("/api/submit-note",{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({path:`${selectedTopic.replace(".md","")}/test-note.md`,
+  content,
+  title
+  })});
+  
+  const data = await response.json();
+  console.log(data);
   
   }
 

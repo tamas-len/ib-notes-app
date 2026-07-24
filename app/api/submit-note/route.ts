@@ -1,105 +1,154 @@
-import { NextRequest, NextResponse } from "next/server";
-import { octokit, githubConfig } from "@/lib/github";
+import { NextResponse } from "next/server";
+import { octokit } from "@/lib/github";
 
 
-export async function POST(request: NextRequest) {
+const owner = process.env.GITHUB_OWNER!;
+const repo = process.env.GITHUB_REPO!;
+
+
+export async function POST(
+  request: Request
+) {
 
   const body = await request.json();
 
+
   const {
-    title,
-    subject,
-    language,
+    path,
     content,
+    title
   } = body;
 
 
-  const branchName =
-    `submission-${Date.now()}`;
+
+  if (!path || !content) {
+
+    return NextResponse.json(
+      {
+        error:"Missing data"
+      },
+      {
+        status:400
+      }
+    );
+
+  }
 
 
-  // Get main branch
-  const mainBranch =
-    await octokit.rest.repos.getBranch({
-      owner: githubConfig.owner,
-      repo: githubConfig.repo,
-      branch: "main",
+
+  try {
+
+
+    // get main branch
+
+    const main =
+      await octokit.rest.git.getRef({
+        owner,
+        repo,
+        ref:"heads/main"
+      });
+
+
+
+    const branchName =
+      `submission-${Date.now()}`;
+
+
+
+    // create branch
+
+    await octokit.rest.git.createRef({
+
+      owner,
+      repo,
+
+      ref:
+        `refs/heads/${branchName}`,
+
+      sha:
+        main.data.object.sha
+
     });
 
 
-  // Create branch
-  await octokit.rest.git.createRef({
-    owner: githubConfig.owner,
-    repo: githubConfig.repo,
-    ref: `refs/heads/${branchName}`,
-    sha: mainBranch.data.commit.sha,
-  });
 
+    // create file
 
-  // Create markdown file path
+    await octokit.rest.repos.createOrUpdateFileContents({
 
-  const filePath =
-    `content/ib/${subject}/community/${title}.md`;
+      owner,
 
+      repo,
 
-  // Create markdown content
+      path,
 
-  const markdown = `
----
-title: ${title}
-subject: ${subject}
-language: ${language}
----
+      message:
+        `Add submission: ${title}`,
 
-${content}
-`;
-
-
-  // Create file
-
-  await octokit.rest.repos.createOrUpdateFileContents({
-
-    owner: githubConfig.owner,
-    repo: githubConfig.repo,
-
-    path: filePath,
-
-    message: `Add community note: ${title}`,
-
-    content:
-      Buffer
-        .from(markdown)
+      content:
+        Buffer
+        .from(content)
         .toString("base64"),
 
-    branch: branchName,
+      branch:
+        branchName
 
-  });
-
-
-    // Create pull request
-
-    const pullRequest =
-    await octokit.rest.pulls.create({
-
-    owner: githubConfig.owner,
-    repo: githubConfig.repo,
-    title: `Add community note: ${title}`,
-    head: branchName,
-    base: "main",
-    body: `
-    ## New community note
-    **Subject:** ${subject}
-    **Language:** ${language}
-    Submitted through IB Notes Platform.
-    `,
     });
+
+
+
+    // create PR
+
+    const pr =
+      await octokit.rest.pulls.create({
+
+        owner,
+
+        repo,
+
+        title:
+          `New note submission: ${title}`,
+
+        head:
+          branchName,
+
+        base:
+          "main"
+
+      });
+
+
 
     return NextResponse.json({
-    success:true,
-    branch:branchName,
-    file:filePath,
-    pullRequest:
-        pullRequest.data.html_url,
+
+      success:true,
+
+      url:
+        pr.data.html_url
+
     });
+
+
+
+  } catch(error){
+
+
+    console.error(error);
+
+
+    return NextResponse.json(
+
+      {
+        error:
+          "GitHub submission failed"
+      },
+
+      {
+        status:500
+      }
+
+    );
+
+  }
 
 }
