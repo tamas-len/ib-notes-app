@@ -48,6 +48,37 @@ export default function SubmitPage() {
           onChange={(e)=>setTitle(e.target.value)}
         />
 
+        <div className="mt-8">
+
+        <label>
+        Note content (Markdown)
+        </label>
+
+
+        <textarea
+
+        className="
+        border 
+        p-2 
+        block 
+        w-full 
+        h-64
+        rounded
+        bg-white
+        text-black
+        "
+
+        value={content}
+
+        onChange={(e)=>
+        setContent(e.target.value)
+        }
+
+        />
+
+
+        </div>
+
 
         <input
           className="border p-2"
