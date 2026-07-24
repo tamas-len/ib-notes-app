@@ -9,6 +9,27 @@ export default function SubmitPage() {
   const [language, setLanguage] = useState("");
   const [content, setContent] = useState("");
 
+  const handleSubmit = async () => {
+    const response = await fetch("/api/submit-note", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title,
+        subject,
+        language,
+        content,
+      }),
+    });
+  
+    const data = await response.json();
+  
+    console.log(data);
+  
+    alert("Submission received!");
+  };
+
   return (
     <main className="min-h-screen p-10">
 
@@ -54,6 +75,7 @@ export default function SubmitPage() {
 
         <button
           className="bg-black text-white p-3 rounded"
+          onClick={handleSubmit}
         >
           Submit
         </button>
